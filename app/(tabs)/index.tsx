@@ -1,75 +1,99 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// app/(tabs)/index.tsx
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { supabase } from '../../supabaseClient.js'; // sesuaikan path
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+type Row = {
+  id: number;
+  level: number;
+  text: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correct: 'A'|'B'|'C'|'D';
+  youtube_link?: string | null;
+};
 
-export default function HomeScreen() {
+const TABLE_NAME = 'questions'; // ganti kalau nama tabelmu beda
+
+export default function HomeTab() {
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      setErrorMsg('');
+
+      // ambil contoh 5 baris dulu untuk tes (nanti kita ubah jadi 10 acak per level)
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('id, level, text, optionA, optionB, optionC, optionD, correct, youtube_link')
+        .limit(5);
+
+      if (error) {
+        setErrorMsg(error.message);
+        setRows([]);
+      } else {
+        setRows((data as Row[]) ?? []);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+        <Text style={{ marginTop: 8 }}>Mengambil data dari Supabase…</Text>
+      </View>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Error mengambil data</Text>
+        <Text style={{ color: 'red', marginBottom: 8 }}>{errorMsg}</Text>
+        <Text>Cek: URL & anon key, nama tabel ({TABLE_NAME}), dan policy SELECT (RLS).</Text>
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={styles.container}>
+      <Text style={styles.title}>Tes Supabase (5 baris pertama)</Text>
+      {rows.length === 0 ? (
+        <Text>Tidak ada data. Pastikan CSV sudah ter-import.</Text>
+      ) : (
+        <FlatList
+          data={rows}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.q}>❓ {item.text}</Text>
+              <Text>A. {item.optionA}</Text>
+              <Text>B. {item.optionB}</Text>
+              <Text>C. {item.optionC}</Text>
+              <Text>D. {item.optionD}</Text>
+              <Text style={{ marginTop: 6, color: 'green' }}>Jawaban benar: {item.correct}</Text>
+              {item.youtube_link ? (
+                <Text style={{ marginTop: 4, opacity: 0.7 }}>YouTube: {item.youtube_link}</Text>
+              ) : null}
+            </View>
+          )}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  container: { flex: 1, padding: 16, paddingTop: 40 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 12 },
+  card: { padding: 12, borderRadius: 8, backgroundColor: '#f3f3f3', marginBottom: 10 },
+  q: { fontWeight: '700', marginBottom: 6 }
 });
