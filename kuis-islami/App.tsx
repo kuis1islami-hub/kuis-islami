@@ -2,18 +2,15 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import React from "react";
-
-// Import screens
 import HomeScreen from "./screens/HomeScreen";
 import LeaderboardScreen from "./screens/LeaderboardScreen";
 import LevelScreen from "./screens/LevelScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 
-// Definisi route dan param
 export type RootStackParamList = {
   Home: undefined;
   Level: { level: number };
-  Leaderboard: { player?: string } | undefined;
+  Leaderboard: undefined;
   Profile: undefined;
 };
 
@@ -31,7 +28,7 @@ export default function App() {
         <Stack.Screen
           name="Level"
           component={LevelScreen}
-          options={{ title: "Level" }}
+          options={{ title: "Main Level" }}
         />
         <Stack.Screen
           name="Leaderboard"
